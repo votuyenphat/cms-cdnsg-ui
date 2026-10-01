@@ -1,18 +1,17 @@
 import axios from "axios";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://warehouse-cdnsg.onrender.com/api";
+
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": "true",
   },
   withCredentials: true,
 });
 
 axiosClient.interceptors.request.use(
   (config) => {
-    config.headers["ngrok-skip-browser-warning"] = "true";
-
     const token = localStorage.getItem("access_token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
@@ -29,19 +28,19 @@ axiosClient.interceptors.response.use(
     if (
       err.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes("/api/auth/refresh")
+      !originalRequest.url.includes("/auth/refresh")
     ) {
       originalRequest._retry = true;
 
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          `${API_BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true },
         );
 
         const newAccessToken = res.data;
-        console.log(newAccessToken)
+        console.log(newAccessToken);
 
         if (!newAccessToken) {
           localStorage.removeItem("access_token");
