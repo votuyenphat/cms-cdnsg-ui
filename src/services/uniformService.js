@@ -21,6 +21,8 @@ export const uniformService = {
   deleteImport: (id) => axiosClient.delete(`/uniform-imports/${id}`),
 
   // --- XUẤT KHO / CẤP PHÁT ĐỒNG PHỤC ---
+  getReceiptStats: (params) => axiosClient.get("/uniform-receipts/stats", { params }), // params gồm: fromDate, toDate
+
   getAllReceipts: (params) => axiosClient.get("/uniform-receipts", { params }), // params gồm: page, size, fromDate, toDate, cusName
 
   createReceipt: (data) => axiosClient.post("/uniform-receipts", data),

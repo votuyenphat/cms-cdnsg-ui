@@ -54,21 +54,30 @@ export default function Uniforms() {
 
   // Hàm tải dữ liệu thống kê theo khoảng ngày (năm / ngày)
   const fetchStatsByRange = async (fromDate, toDate) => {
+    // 1. Thử gọi API /stats chuyên biệt siêu tốc (CSDL trả về ngay tức thì)
     try {
-      const res = await uniformService.getAllReceipts({
+      const res = await uniformService.getReceiptStats({ fromDate, toDate });
+      if (res?.data && res.data.count !== undefined) {
+        return {
+          count: res.data.count,
+          totalQty: res.data.totalQuantity ?? 0,
+        };
+      }
+    } catch {
+      // Bỏ qua lỗi và chuyển sang fallback
+    }
+
+    // 2. Fallback: Lấy size=1 để lấy ngay page.totalElements trong ~1s, không bao giờ load cả nghìn bản ghi
+    try {
+      const fallbackRes = await uniformService.getAllReceipts({
         fromDate,
         toDate,
         page: 0,
-        size: 3000,
+        size: 1,
       });
-      const list = res.data.content || [];
-      const count =
-        res.data.page?.totalElements ?? res.data.totalElements ?? list.length;
-      const totalQty = list.reduce(
-        (sum, item) => sum + (item.totalQuantity || 0),
-        0
-      );
-      return { count, totalQty };
+      const pageObj = fallbackRes.data?.page;
+      const count = pageObj?.totalElements ?? fallbackRes.data?.totalElements ?? 0;
+      return { count, totalQty: 0 };
     } catch (err) {
       console.error("Lỗi tải thống kê phiếu xuất:", fromDate, toDate, err);
       return { count: 0, totalQty: 0 };
@@ -78,11 +87,14 @@ export default function Uniforms() {
   const loadAllStats = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const yearData = await fetchStatsByRange(`${currentYear}-01-01`, `${currentYear}-12-31`);
+      const [yearData, selData] = await Promise.all([
+        fetchStatsByRange(`${currentYear}-01-01`, `${currentYear}-12-31`),
+        fetchStatsByRange(selectedDate, selectedDate),
+      ]);
       setYearStats(yearData);
-
-      const selData = await fetchStatsByRange(selectedDate, selectedDate);
       setSelectedStats(selData);
+    } catch (err) {
+      console.error("Lỗi tải tổng hợp thống kê:", err);
     } finally {
       setLoadingStats(false);
     }
