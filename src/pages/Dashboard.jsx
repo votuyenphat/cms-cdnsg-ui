@@ -53,60 +53,54 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = () => {
     setLoading(true);
-    try {
-      const [
-        matStats,
-        projStats,
-        fireStatsRes,
-        topMatsRes,
-        fireAdvStats,
-        recentActsRes,
-      ] = await Promise.all([
-        materialService.getMaterialStats(),
-        projectorService.getProjectorStats(),
-        fireExtinguisherService.getStats(),
-        materialService.getTopExportedMaterials(),
-        fireExtinguisherService.getAdvancedStats(),
-        materialService.getRecentActivities(), // Danh sách PCCC chi tiết
-      ]);
 
-      setMaterialStats(matStats.data);
-      setProjectorStats(projStats.data);
-      setFireStats(fireStatsRes.data);
-      setTopMaterials(topMatsRes.data || []);
-      setRecentActivities(
-        recentActsRes.data || { recentImports: [], recentExports: [] },
-      );
+    const pMat = materialService.getMaterialStats()
+      .then((res) => { if (res.data) setMaterialStats(res.data); })
+      .catch((err) => console.error("Lỗi getMaterialStats:", err));
 
-      // Lọc các khu vực PCCC có cảnh báo (minNextRechargeDate < today)
-      const warnings = (fireAdvStats.data || []).filter((item) => {
-        if (!item.minNextRechargeDate) return false;
-        return (
-          new Date(item.minNextRechargeDate) <
-          new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
-        ); // Cảnh báo trước 15 ngày
-      });
-      setFireWarningList(warnings);
-    } catch (error) {
-      console.error("Lỗi tải dữ liệu Dashboard:", error);
-    } finally {
+    const pProj = projectorService.getProjectorStats()
+      .then((res) => { if (res.data) setProjectorStats(res.data); })
+      .catch((err) => console.error("Lỗi getProjectorStats:", err));
+
+    const pFire = fireExtinguisherService.getStats()
+      .then((res) => { if (res.data) setFireStats(res.data); })
+      .catch((err) => console.error("Lỗi getStats PCCC:", err));
+
+    const pTop = materialService.getTopExportedMaterials()
+      .then((res) => { if (res.data) setTopMaterials(res.data); })
+      .catch((err) => console.error("Lỗi getTopExportedMaterials:", err));
+
+    const pFireAdv = fireExtinguisherService.getAdvancedStats()
+      .then((res) => {
+        const warnings = (res.data || []).filter((item) => {
+          if (!item.minNextRechargeDate) return false;
+          return (
+            new Date(item.minNextRechargeDate) <
+            new Date(new Date().getTime() + 15 * 24 * 60 * 60 * 1000)
+          );
+        });
+        setFireWarningList(warnings);
+      })
+      .catch((err) => console.error("Lỗi getAdvancedStats PCCC:", err));
+
+    const pActs = materialService.getRecentActivities()
+      .then((res) => { if (res.data) setRecentActivities(res.data); })
+      .catch((err) => console.error("Lỗi getRecentActivities:", err));
+
+    Promise.allSettled([pMat, pProj, pFire, pTop, pFireAdv, pActs]).finally(() => {
       setLoading(false);
-    }
+    });
   };
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[80vh] text-slate-400">
-        <Loader2 size={40} className="animate-spin text-indigo-600 mb-4" />
-        <p className="font-bold animate-pulse">Đang tổng hợp dữ liệu kho...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 slide-in-from-bottom-4">
+      {loading && (
+        <div className="flex items-center text-xs text-indigo-600 bg-indigo-50/80 border border-indigo-100 px-3 py-1.5 rounded-lg w-fit animate-pulse">
+          <Loader2 size={13} className="animate-spin mr-2" /> Đang cập nhật dữ liệu mới nhất...
+        </div>
+      )}
       {/* KHU VỰC 1: CARD TỔNG QUAN (THỐNG KÊ VẬT TƯ) */}
       <h2 className="text-lg font-bold text-slate-800 flex items-center">
         <Package className="mr-2 text-indigo-600" /> Tổng quan Vật tư
