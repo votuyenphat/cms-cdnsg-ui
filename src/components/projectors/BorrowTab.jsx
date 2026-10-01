@@ -276,10 +276,11 @@ export default function BorrowTab() {
                   <td className="px-6 py-4 font-bold text-slate-500">
                     #{item.id}
                   </td>
-                  <td className="px-6 py-4 font-bold text-[#1a237e]">
-                    {item.projector.name} <br />
-                    <span className="text-[10px] text-slate-400 font-mono font-normal">
-                      SN: {item.projector.serialNumber}
+                  <td className="px-6 py-4">
+                    <span className="font-bold text-[#1a237e] text-sm">{item.projector.name}</span>
+                    <br />
+                    <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-mono font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded shadow-xs">
+                      S/N: {item.projector.serialNumber || "N/A"}
                     </span>
                   </td>
                   <td className="px-6 py-4 font-semibold text-slate-700">
@@ -431,12 +432,12 @@ export default function BorrowTab() {
                             setBorrowForm({ ...borrowForm, projectorIds: ids });
                           }}
                         />
-                        <span className="font-semibold text-slate-700">
-                          {p.name}{" "}
-                          <span className="text-xs text-slate-400 font-normal">
-                            ({p.serialNumber})
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 text-sm">{p.name}</span>
+                          <span className="px-2 py-0.5 text-xs font-mono font-bold bg-slate-200 text-slate-800 rounded border border-slate-300">
+                            S/N: {p.serialNumber || "N/A"}
                           </span>
-                        </span>
+                        </div>
                       </label>
                     ))
                   )}

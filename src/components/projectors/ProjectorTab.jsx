@@ -199,8 +199,10 @@ export default function ProjectorTab() {
                     <td className="px-6 py-4 font-bold text-[#1a237e]">
                       {item.name}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 font-mono">
-                      {item.serialNumber}
+                    <td className="px-6 py-4">
+                      <span className="inline-block px-2.5 py-1 text-xs font-mono font-bold text-slate-800 bg-slate-100 border border-slate-300 rounded-md shadow-xs">
+                        S/N: {item.serialNumber || "N/A"}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span

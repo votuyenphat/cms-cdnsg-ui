@@ -43,6 +43,7 @@ export default function MaintenanceTab() {
     generalNote: "",
   });
   const [selectedProjectors, setSelectedProjectors] = useState([]);
+  const [onlyNeedMaintenance, setOnlyNeedMaintenance] = useState(true);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -100,6 +101,7 @@ export default function MaintenanceTab() {
       generalNote: "",
     });
     setSelectedProjectors([]);
+    setOnlyNeedMaintenance(true);
     setIsTicketModalOpen(true);
   };
 
@@ -254,12 +256,14 @@ export default function MaintenanceTab() {
                   <td>{t.ticketCode || `#BT-${t.id}`}</td>
                   <td>{t.technician || "N/A"}</td>
                   <td>
-                    <ul className="list-disc pl-4 text-xs">
+                    <ul className="space-y-1 text-xs">
                       {/* SỬA: Dùng .details thay vì .items */}
                       {t.details?.map((d) => (
-                        <li key={d.id}>
-                          {d.projector?.name}{" "}
-                          {/* SỬA: Truy cập qua object projector */}
+                        <li key={d.id} className="flex items-center gap-1.5 flex-wrap py-0.5">
+                          <span className="font-semibold text-slate-800">{d.projector?.name}</span>
+                          <span className="inline-block px-1.5 py-0.5 text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-300 rounded shadow-xs">
+                            S/N: {d.projector?.serialNumber || "N/A"}
+                          </span>
                         </li>
                       ))}
                     </ul>
@@ -417,34 +421,82 @@ export default function MaintenanceTab() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-2">
-                  Chọn Máy Chiếu cần sửa * (Nhiều máy)
-                </label>
-                <div className="bg-slate-50 p-3 rounded-xl border max-h-48 overflow-y-auto space-y-2">
-                  {allProjectorsList.map((p) => (
-                    <label
-                      key={p.id}
-                      className="flex items-center space-x-3 p-2 hover:bg-white rounded-lg cursor-pointer border border-transparent hover:border-slate-200 transition-all"
-                    >
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-amber-600"
-                        checked={selectedProjectors.includes(p.id)}
-                        onChange={(e) => {
-                          const ids = e.target.checked
-                            ? [...selectedProjectors, p.id]
-                            : selectedProjectors.filter((id) => id !== p.id);
-                          setSelectedProjectors(ids);
-                        }}
-                      />
-                      <span className="font-semibold text-slate-700">
-                        {p.name}{" "}
-                        <span className="text-xs text-slate-400 font-normal">
-                          ({p.serialNumber}) - {translateStatus(p.status)}
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Chọn Máy Chiếu cần sửa * ({selectedProjectors.length} đã chọn)
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200 cursor-pointer hover:bg-amber-100 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={onlyNeedMaintenance}
+                      onChange={(e) => setOnlyNeedMaintenance(e.target.checked)}
+                      className="rounded text-amber-600 focus:ring-amber-500 w-3.5 h-3.5"
+                    />
+                    Chỉ hiện máy cần bảo trì
+                  </label>
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl border max-h-56 overflow-y-auto space-y-2">
+                  {allProjectorsList
+                    .filter((p) => {
+                      if (!onlyNeedMaintenance) return true;
+                      return p.status === "BROKEN" || p.status === "UNDER_MAINTENANCE";
+                    })
+                    .map((p) => (
+                      <label
+                        key={p.id}
+                        className="flex items-center justify-between p-2.5 hover:bg-white rounded-lg cursor-pointer border border-transparent hover:border-slate-200 transition-all shadow-xs"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                            checked={selectedProjectors.includes(p.id)}
+                            onChange={(e) => {
+                              const ids = e.target.checked
+                                ? [...selectedProjectors, p.id]
+                                : selectedProjectors.filter((id) => id !== p.id);
+                              setSelectedProjectors(ids);
+                            }}
+                          />
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{p.name}</p>
+                            <span className="inline-block mt-0.5 px-2 py-0.5 text-xs font-mono font-black bg-slate-200 text-slate-800 rounded border border-slate-300">
+                              S/N: {p.serialNumber || "N/A"}
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            p.status === "BROKEN"
+                              ? "bg-red-50 text-red-700 border-red-200"
+                              : p.status === "UNDER_MAINTENANCE"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {translateStatus(p.status)}
                         </span>
-                      </span>
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+
+                  {allProjectorsList.filter((p) => {
+                    if (!onlyNeedMaintenance) return true;
+                    return p.status === "BROKEN" || p.status === "UNDER_MAINTENANCE";
+                  }).length === 0 && (
+                    <div className="text-center py-6 text-slate-400">
+                      <p className="text-xs font-medium">Hiện không có máy chiếu nào cần bảo trì (Đã hỏng / Đang bảo trì).</p>
+                      {onlyNeedMaintenance && (
+                        <button
+                          type="button"
+                          onClick={() => setOnlyNeedMaintenance(false)}
+                          className="mt-2 text-xs font-bold text-amber-700 hover:underline"
+                        >
+                          Bấm vào đây để xem tất cả máy chiếu
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -516,9 +568,14 @@ export default function MaintenanceTab() {
                       key={item.id}
                       className="p-3 border rounded-xl bg-slate-50 flex flex-col gap-2"
                     >
-                      <span className="font-bold text-[#1a237e] text-sm">
-                        {item.name} + {item.serialNumber}
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-[#1a237e] text-sm">
+                          {item.name}
+                        </span>
+                        <span className="px-2 py-0.5 text-xs font-mono font-bold bg-white text-slate-800 border border-slate-300 rounded shadow-xs">
+                          S/N: {item.serialNumber || "N/A"}
+                        </span>
+                      </div>
                       <select
                         className="w-full p-2 bg-white border rounded outline-none text-sm font-medium"
                         value={item.nextStatus}
@@ -630,7 +687,9 @@ export default function MaintenanceTab() {
                     >
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-800 text-sm">{d.projector?.name}</span>
-                        <span className="text-xs text-slate-500">S/N: {d.projector?.serialNumber}</span>
+                        <span className="inline-block mt-0.5 text-xs font-mono font-bold bg-indigo-50 text-indigo-800 border border-indigo-200 px-2 py-0.5 rounded shadow-xs w-fit">
+                          S/N: {d.projector?.serialNumber || "N/A"}
+                        </span>
                       </div>
                       <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg border bg-blue-50 text-blue-600 border-blue-200">
                         {translateStatus(d.projector?.status)}

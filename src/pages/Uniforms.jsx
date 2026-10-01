@@ -38,28 +38,28 @@ export default function Uniforms() {
   const [activeTab, setActiveTab] = useState("catalog");
 
   // State cho bộ đếm thống kê phiếu xuất
-  const [todayDate] = useState(getTodayStr());
+  const [currentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [tabDateFilter, setTabDateFilter] = useState({
     fromDate: "",
     toDate: "",
   });
 
-  const [todayStats, setTodayStats] = useState({ count: 0, totalQty: 0 });
+  const [yearStats, setYearStats] = useState({ count: 0, totalQty: 0 });
   const [selectedStats, setSelectedStats] = useState({
     count: 0,
     totalQty: 0,
   });
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // Hàm tải dữ liệu thống kê cho 1 ngày
-  const fetchStatsForDate = async (dateStr) => {
+  // Hàm tải dữ liệu thống kê theo khoảng ngày (năm / ngày)
+  const fetchStatsByRange = async (fromDate, toDate) => {
     try {
       const res = await uniformService.getAllReceipts({
-        fromDate: dateStr,
-        toDate: dateStr,
+        fromDate,
+        toDate,
         page: 0,
-        size: 1000,
+        size: 3000,
       });
       const list = res.data.content || [];
       const count =
@@ -70,7 +70,7 @@ export default function Uniforms() {
       );
       return { count, totalQty };
     } catch (err) {
-      console.error("Lỗi tải thống kê phiếu xuất ngày:", dateStr, err);
+      console.error("Lỗi tải thống kê phiếu xuất:", fromDate, toDate, err);
       return { count: 0, totalQty: 0 };
     }
   };
@@ -78,23 +78,25 @@ export default function Uniforms() {
   const loadAllStats = useCallback(async () => {
     setLoadingStats(true);
     try {
-      const todayData = await fetchStatsForDate(todayDate);
-      setTodayStats(todayData);
+      const yearData = await fetchStatsByRange(`${currentYear}-01-01`, `${currentYear}-12-31`);
+      setYearStats(yearData);
 
-      if (selectedDate === todayDate) {
-        setSelectedStats(todayData);
-      } else {
-        const selData = await fetchStatsForDate(selectedDate);
-        setSelectedStats(selData);
-      }
+      const selData = await fetchStatsByRange(selectedDate, selectedDate);
+      setSelectedStats(selData);
     } finally {
       setLoadingStats(false);
     }
-  }, [todayDate, selectedDate]);
+  }, [currentYear, selectedDate]);
 
   useEffect(() => {
     loadAllStats();
   }, [loadAllStats]);
+
+  // Chuyển sang tab Cấp phát và lọc theo năm nay
+  const handleViewReceiptsForYear = (year) => {
+    setTabDateFilter({ fromDate: `${year}-01-01`, toDate: `${year}-12-31` });
+    setActiveTab("receipt");
+  };
 
   // Chuyển sang tab Cấp phát và lọc theo ngày đã chọn
   const handleViewReceiptsForDate = (date) => {
@@ -106,16 +108,16 @@ export default function Uniforms() {
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* HEADER WIDGET: THỐNG KÊ PHIẾU XUẤT KHO / CẤP PHÁT */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* CARD 1: SỐ PHIẾU XUẤT TRONG NGÀY (HÔM NAY) */}
+        {/* CARD 1: SỐ PHIẾU XUẤT TRONG NĂM NAY */}
         <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-white p-5 rounded-2xl border border-amber-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold uppercase tracking-wide">
                 <CalendarCheck size={14} className="text-amber-700" />
-                Hôm nay: {formatDateDisplay(todayDate)}
+                Năm {currentYear}
               </span>
               <h4 className="text-slate-600 font-semibold text-sm mt-3">
-                Số phiếu đã xuất trong ngày
+                Số phiếu xuất trong năm nay
               </h4>
             </div>
             <div className="p-3 bg-amber-500 text-white rounded-xl shadow-md shadow-amber-500/20">
@@ -132,7 +134,7 @@ export default function Uniforms() {
                     className="animate-spin text-amber-600 inline"
                   />
                 ) : (
-                  todayStats.count
+                  yearStats.count
                 )}{" "}
                 <span className="text-lg font-semibold text-slate-500">
                   phiếu
@@ -141,13 +143,13 @@ export default function Uniforms() {
               <p className="text-xs text-slate-500 font-medium mt-1">
                 Tổng cộng:{" "}
                 <span className="font-bold text-amber-700">
-                  {todayStats.totalQty} cái
+                  {yearStats.totalQty} cái
                 </span>{" "}
                 đồng phục
               </p>
             </div>
             <button
-              onClick={() => handleViewReceiptsForDate(todayDate)}
+              onClick={() => handleViewReceiptsForYear(currentYear)}
               className="text-xs font-bold text-amber-700 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-2 rounded-lg transition-colors inline-flex items-center gap-1"
             >
               Xem chi tiết <ArrowRight size={14} />
