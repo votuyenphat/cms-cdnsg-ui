@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./components/layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
@@ -21,7 +21,18 @@ import UserManagement from "./pages/UserManagement";
 import UserBorrow from "./pages/UserBorrow";
 import UserLayout from "./components/layout/UserLayout";
 import WaterImports from "./pages/WaterImports";
+
 function App() {
+  useEffect(() => {
+    // Keep backend alive and warmed up while application is open
+    const ping = () => {
+      fetch("https://warehouse-cdnsg.onrender.com/swagger-ui/index.html", { mode: "no-cors" }).catch(() => {});
+    };
+    ping();
+    const interval = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ToastProvider>
       {" "}
